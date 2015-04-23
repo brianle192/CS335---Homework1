@@ -36,13 +36,11 @@
 #include <GL/glx.h>
 #include "ppm.h"
 #include "log.h"
-extern "C"
-{
-#include "fonts.h"
+extern "C"{
+    #include "fonts.h"
 }
 #define WINDOW_WIDTH  800
 #define WINDOW_HEIGHT 600
-
 #define MAX_PARTICLES 4000
 #define GRAVITY 0.1
 #define PI 3.14159
@@ -53,7 +51,6 @@ Window win;
 GLXContext glc;
 
 //Structures
-
 struct Vec {
     float x, y, z;
 };
@@ -130,7 +127,9 @@ int main(void)
         render(&game);
         glXSwapBuffers(dpy, win);
     }
+    //include to print text
     cleanupXWindows();
+    cleanup_fonts();
     return 0;
 }
 
@@ -197,7 +196,7 @@ void init_opengl(void)
 void makeParticle(Game *game, int x, int y) {
     if (game->n >= MAX_PARTICLES)
         return;
-//    std::cout << "makeParticle() " << x << " " << y << std::endl;
+    //std::cout << "makeParticle() " << x << " " << y << std::endl;
     //position of particle
     Particle *p = &game->particle[game->n];
     p->s.center.x = x;
@@ -223,10 +222,11 @@ void check_mouse(XEvent *e, Game *game)
             for(int i=0; i<10; i++)
                 makeParticle(game, e->xbutton.x, y);
             return;
+        }
             if (e->xbutton.button==3) {
                 //Right button was pressed
                 return;
-            }
+            
         }
     }
     //Did the mouse move?
@@ -252,8 +252,7 @@ int check_keys(XEvent *e, Game *game)
             return 1;
         }
         //You may check other keys here.
-        if (key == XK_b)
-        {
+        if (key == XK_b) {
             game->bubbler = !game->bubbler;
         }
 
@@ -265,16 +264,15 @@ void movement(Game *game)
 {
     Particle *p;
 
-    if(game->bubbler)
-    {
-        for(int i=0; i<20; i++)
+    if(game->bubbler){
+            for(int i=0; i<20; i++)
             makeParticle(game, game->lastMouse[0], WINDOW_HEIGHT - game->lastMouse[1]);
     }
 
     if (game->n <= 0)
         return;
 
-    for(int i = 0; i < game->n; i++)
+    for(int i = 0; i<game->n; i++)
     {
         p = &game->particle[i];
         p->s.center.x += p->velocity.x;
@@ -296,6 +294,8 @@ void movement(Game *game)
                 p->velocity.x += rnd() * 0.01;
             }
         }
+        //check for collision with the circle
+        //shape circle
         float d0,d1,dist;
         d0 = p->s.center.x - game->circle.center.x;
         d1 = p->s.center.y - game->circle.center.y;
@@ -315,7 +315,7 @@ void movement(Game *game)
         //check for off-screen
         if (p->s.center.y < 0.0) {
             memcpy(&game->particle[i], &game->particle[game->n-1], sizeof(Particle));
-//            std::cout << "off screen" << std::endl;
+        //std::cout << "off screen" << std::endl;
             game->n--;
         }
     }
@@ -324,17 +324,18 @@ void movement(Game *game)
 void render(Game *game)
 {
     float w, h;
+    //include to print text
     Rect r;
     glClear(GL_COLOR_BUFFER_BIT);
-    //
     r.bot = WINDOW_HEIGHT - 20;
     r.left = 10;
     r.center = 0;
-    ggprint8b(&r, 16, 0x00ffffff, "Waterfall model");
-    //
+    ggprint8b(&r, 16, 0x00ffffff, "WATERFALL MODEL");
+    
+    
     //Draw shapes...
 
-    /*const int n = 40;
+    const int n = 40;
     static int firsttime = 1;
     static Vec vert[n];
     if(firsttime)
@@ -353,44 +354,38 @@ void render(Game *game)
     glBegin(GL_LINE_LOOP);
     for(int i = 0; i < n; i++)
     {
-        glVertex2i(game->circle.center.x + vert[i].x, game->circle.center.y + vert[i].y);
-    }
-    glEnd();*/
-    
-    glColor3ub(50, 90, 50);
-    Shape *c = &game->circle;
-    int triangleAmount = 50;
-    GLfloat twicePi = 2.0f * PI;
-    glBegin(GL_TRIANGLE_FAN);
-    glVertex2f(c->center.x, c->center.y);
-    for(int i = 0; i <= triangleAmount; i++)
-    {
-	glVertex2f(c->center.x + (c->radius * cos(i * twicePi / triangleAmount)), c->center.y + (c->radius * sin(i * twicePi / triangleAmount)));
+        glVertex2i(
+                game->circle.center.x + vert[i].x, 
+                game->circle.center.y + vert[i].y);
     }
     glEnd();
 
-
     //draw box with text
-    const char* text[5] = {"Requirements", "Design", "Coding", "Testing", "Maintenance"};
     Shape *s;
+	glColor3ub(90, 140, 90);
+    
+    const char* text[5] = {"Requirements", "Design", "Coding", "Testing", "Maintenance"};
     for(int i=0; i<5; i++)
     {
-	glColor3ub(90, 140, 90);
+    	glColor3ub(90, 140, 90);
         s = &game->box[i];
         glPushMatrix();
         glTranslatef(s->center.x, s->center.y, s->center.z);
         w = s->width;
         h = s->height;
-	r.bot = s->height - 15;
-	r.left = s->width - 150;
+        
         glBegin(GL_QUADS);
         glVertex2i(-w,-h);
         glVertex2i(-w, h);
         glVertex2i( w, h);
         glVertex2i( w,-h);
         glEnd();
-	ggprint8b(&r, 16, 0x00ffffff, text[i]);
         glPopMatrix();
+	
+	    r.bot = WINDOW_HEIGHT - (110 + (i *60));
+        r.left = (60 + (i * 70));
+        r.center = 0;
+        ggprint8b(&r, 16, 0x00ffffff, text[i]);
     }
 
     //draw all particles here
